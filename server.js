@@ -78,6 +78,45 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { company: tenant.company, plan: tenant.plan, used, limit: PLANS[tenant.plan].maxTasks });
   }
 
+      // Reto 1: Mejorar el plan a pro
+      if (req.method === "POST" && req.url === "/api/upgrade") {
+        tenant.plan = "pro";
+
+        return send(res, 200, {
+          company: tenant.company,
+          plan: tenant.plan,
+          limit: PLANS[tenant.plan].maxTasks
+        });
+      }
+
+      // Reto 2: Completar una tarea propia
+      const match = req.url.match(/^\/api\/tasks\/(\d+)$/);
+
+      if (req.method === "PATCH" && match) {
+        const id = Number(match[1]);
+
+        const task = tasks.find(
+          (t) => t.id === id && t.tenantId === tenant.id
+        );
+
+        if (!task) {
+          return send(res, 404, { error: "Tarea no encontrada" });
+        }
+
+        task.done = true;
+        return send(res, 200, task);
+      }
+
+      // Reto 3: Exportar los datos de la empresa
+      if (req.method === "GET" && req.url === "/api/export") {
+        return send(res, 200, {
+          company: tenant.company,
+          plan: tenant.plan,
+          exportedAt: new Date().toISOString(),
+          tasks: tasks.filter((t) => t.tenantId === tenant.id)
+        });
+      }
+
   send(res, 404, { error: "Ruta no encontrada" });
 });
 
